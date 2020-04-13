@@ -1,60 +1,62 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-;load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
-load "/home/mlhchen/big_WRFUserARW.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
+;load "/home/mlhchen/big_WRFUserARW.ncl"
 
 begin
 ;-------------------------------------------------------------------------
-  wrf_path = "./"
-  wrf_cont = "wrfout_d03_2020-03-10_000000.nc"
-  wrf_Name = wrf_path + wrf_cont
-  a = addfile( wrf_Name , "r")
-  times    = wrf_user_getvar(a,"times",-1)
+  files = systemfunc("ls -d ../wrfout/wrfout_d03_*") + ".nc"
+  member = dimsizes(files)
+  a = addfiles( files , "r")
+  times    = wrf_user_getvar(a[0],"times",-1)
   ntimes   = dimsizes(times) ; number of times in the files
-  w_noplt  = wrf_user_getvar(a,"wa",0)
+  w_noplt  = wrf_user_getvar(a[0],"wa",0)
   ;printVarSummary(w_noplt)
   nlev     = dimsizes(w_noplt(:,0,0))
   nlat     = dimsizes(w_noplt(0,:,0))
   nlon     = dimsizes(w_noplt(0,0,:))
-  lon = wrf_user_getvar(a,"XLONG",0)
-  lat = wrf_user_getvar(a,"XLAT",0)
+  lon = wrf_user_getvar(a[0],"XLONG",0)
+  lat = wrf_user_getvar(a[0],"XLAT",0)
 print("Domain:"+ntimes+"|"+nlev+"|"+nlat+"|"+nlon+" .......Get Dimensions!!")
-hgt = wrf_user_getvar(a,"HGT",0)  ;hgt = a->HGT(0,:,:)
-z = wrf_user_getvar(a,"z",-1)
-;print(z(1,:,120,123))
-print(z(1,:,149,51))
+hgt = wrf_user_getvar(a[0],"HGT",0)  ;hgt = a->HGT(0,:,:)
 print(max(hgt))
-print(times)
 ;----------------------------------
- p = wrf_user_getvar(a,"pressure",-1) ; hPa
+do mm = member-2,member-1
+ date = stringtochar(files(mm))
+ ;print(date(21:33))
+ times    = wrf_user_getvar(a[mm],"times",-1)
+ print(times)
+ ntimes = dimsizes(times) ; number of times in the files
+ z = wrf_user_getvar(a[mm],"z",-1)
+ p = wrf_user_getvar(a[mm],"pressure",-1) ; hPa
  ;printVarSummary(p)
- tk = wrf_user_getvar(a,"tk",-1)
+ tk = wrf_user_getvar(a[mm],"tk",-1)
  rho =  p*100.0/tk/287.0 ; kg/m3
  print(max(rho(:,:,:,:)))
- qc = wrf_user_getvar(a,"QCLOUD",-1)
+ qc = wrf_user_getvar(a[mm],"QCLOUD",-1)
  qc = qc*1.E3 ; g/kg
 ;------
- ctt = wrf_user_getvar(a,"ctt",-1)   
+ ctt = wrf_user_getvar(a[mm],"ctt",-1)   
 ;------
- td = wrf_user_getvar(a,"td",-1)
+ td = wrf_user_getvar(a[mm],"td",-1)
  td = td + 273.15
 ;------
- dbz = wrf_user_getvar(a,"REFL_10CM",-1)
+ dbz = wrf_user_getvar(a[mm],"REFL_10CM",-1)
  mdbz = dbz(:,0,:,:)
 ;------
-  wa  = wrf_user_getvar(a,"wa",-1)
-  w1000 = wrf_user_intrp3d(wa,z,"h",1000.0,0.,False)
-  ua  = wrf_user_getvar(a,"ua",-1)
-  va  = wrf_user_getvar(a,"va",-1)
-  u1000 = wrf_user_intrp3d(ua,z,"h",1000.0,0.,False)
-  v1000 = wrf_user_intrp3d(va,z,"h",1000.0,0.,False)
-  vel_1000 = sqrt(u1000^2.0+v1000^2.0)
+  wa  = wrf_user_getvar(a[mm],"wa",-1)
+  w500 = wrf_user_intrp3d(wa,z,"h",500.0,0.,False)
+  ua  = wrf_user_getvar(a[mm],"ua",-1)
+  va  = wrf_user_getvar(a[mm],"va",-1)
+  u500 = wrf_user_intrp3d(ua,z,"h",500.0,0.,False)
+  v500 = wrf_user_intrp3d(va,z,"h",500.0,0.,False)
+  vel_500 = sqrt(u500^2.0+v500^2.0)
 ;------
-  qv = wrf_user_getvar(a,"QVAPOR",-1);kg/kg
+  qv = wrf_user_getvar(a[mm],"QVAPOR",-1);kg/kg
   rh = relhum(tk,qv,p*100.0)
 ;------
-  rain_exp = wrf_user_getvar(a,"RAINNC",-1)
-  rain_con = wrf_user_getvar(a,"RAINC",-1)
+  rain_exp = wrf_user_getvar(a[mm],"RAINNC",-1)
+  rain_con = wrf_user_getvar(a[mm],"RAINC",-1)
   rain_tot = rain_exp + rain_con
   rain_instant = rain_tot
 do t = 1,ntimes-1
@@ -99,19 +101,49 @@ rain_instant(0,:,:) = rain_instant(1,:,:)
  ;print(max(lwp(:,:,:)))
 
 ;----------------------------------
- File_out = "lwplclwdbz.bin"
+ print(date(21:33))
+ File_out = date(21:33)+"_lwplclwdbz.bin"
  system("rm "+File_out)
  setfileoption("bin","WriteByteOrder","LittleEndian")
  fbindirwrite(File_out,lwp)
  fbindirwrite(File_out,lcl(1,:,:,:))
- fbindirwrite(File_out,w1000)
+ fbindirwrite(File_out,w500)
  fbindirwrite(File_out,mdbz)
  fbindirwrite(File_out,ctt)
- fbindirwrite(File_out,vel_1000)
+ fbindirwrite(File_out,vel_500)
  fbindirwrite(File_out,rh1500)
  fbindirwrite(File_out,rh5000)
  fbindirwrite(File_out,rain_instant)
-
+;----------------------------------
+ delete(lwp)
+ delete(lcl)
+ delete(w500)
+ delete(mdbz)
+ delete(ctt)
+ delete(vel_500)
+ delete(rh1500)
+ delete(rh5000)
+ delete(rain_instant)
+ delete(times)
+ delete(z)
+ delete(p)
+ delete(tk)
+ delete(rho)
+ delete(qc)
+ delete(td)
+ delete(dbz)
+ delete(wa)
+ delete(ua)
+ delete(va)
+ delete(u500)
+ delete(v500)
+ delete(qv)
+ delete(rh)
+ delete(rain_exp)
+ delete(rain_con)
+ delete(rain_tot)
+ delete(rain_instant)
+end do ; mm
 ;------------------------------------------------------------------------
 end
 

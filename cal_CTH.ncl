@@ -1,43 +1,47 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-;load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
-load "/home/mlhchen/big_WRFUserARW.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
+;load "/home/mlhchen/big_WRFUserARW.ncl"
 
 begin
 ;-------------------------------------------------------------------------
-  wrf_path = "./"
-  wrf_cont = "wrfout_d03_2020-03-10_000000.nc"
-  wrf_Name = wrf_path + wrf_cont
-  a = addfile( wrf_Name , "r")
-  times    = wrf_user_getvar(a,"times",-1)
+  files = systemfunc("ls -d ../wrfout/wrfout_d03_*") + ".nc"
+  member = dimsizes(files)
+  a = addfiles( files , "r")
+  times    = wrf_user_getvar(a[0],"times",-1)
   ntimes   = dimsizes(times) ; number of times in the files
-  w_noplt  = wrf_user_getvar(a,"wa",0)
+  w_noplt  = wrf_user_getvar(a[0],"wa",0)
   ;printVarSummary(w_noplt)
   nlev     = dimsizes(w_noplt(:,0,0))
   nlat     = dimsizes(w_noplt(0,:,0))
   nlon     = dimsizes(w_noplt(0,0,:))
-  lon = wrf_user_getvar(a,"XLONG",0)
-  lat = wrf_user_getvar(a,"XLAT",0)
+  lon = wrf_user_getvar(a[0],"XLONG",0)
+  lat = wrf_user_getvar(a[0],"XLAT",0)
 print("Domain:"+ntimes+"|"+nlev+"|"+nlat+"|"+nlon+" .......Get Dimensions!!")
-hgt = wrf_user_getvar(a,"HGT",0)  ;hgt = a->HGT(0,:,:)
+hgt = wrf_user_getvar(a[0],"HGT",0)  ;hgt = a->HGT(0,:,:)
 print(max(hgt))
-print(times)
+
+do mm = 0,member-1
+   date = stringtochar(files(mm))
+   ;print(date(21:33))
+   times    = wrf_user_getvar(a[mm],"times",-1)
+   ntimes   = dimsizes(times) ; number of times in the files
 setfileoption("bin","WriteByteOrder","LittleEndian")
-File_out = "cloud_char.bin"
+File_out = date(21:33)+"_cloud_char.bin"
 system("rm "+File_out)
 ;----------------------------------
 do t = 0,ntimes-1
-  print(times(t))
-  qc = wrf_user_getvar(a,"QCLOUD",t)
-  qi = wrf_user_getvar(a,"QICE",t)
-  qs = wrf_user_getvar(a,"QSNOW",t)
+  print("Time: "+times(t))
+  qc = wrf_user_getvar(a[mm],"QCLOUD",t)
+  qi = wrf_user_getvar(a[mm],"QICE",t)
+  qs = wrf_user_getvar(a[mm],"QSNOW",t)
   ;printVarSummary(qc)
   tot = qc + qi + qs 
 
   nk = 122
   lev = new((/nk/),float)
   tot_cloud = new((/nk,nlat,nlon/),float)
-  z  = wrf_user_getvar(a,"z",t)    ; z on mass points
+  z  = wrf_user_getvar(a[mm],"z",t)    ; z on mass points
   kk = 900.0
   do k= 0,nk-1
    ;print(kk)
@@ -110,6 +114,7 @@ delete(c_top)
 delete(c_base)
 end do
 
+end do ;mm
 ;------------------------------------------------------------------------
 end
 

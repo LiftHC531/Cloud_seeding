@@ -1,32 +1,33 @@
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/gsn_csm.ncl"
 load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
-;load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
-load "/home/mlhchen/big_WRFUserARW.ncl"
+load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
+;load "/home/mlhchen/big_WRFUserARW.ncl"
 
 begin
 ;-------------------------------------------------------------------------
-  wrf_path = "./"
-  wrf_cont = "wrfout_d03_2020-03-10_000000.nc"
-  wrf_Name = wrf_path + wrf_cont
-  a = addfile( wrf_Name , "r")
-  times    = wrf_user_getvar(a,"times",-1)
+  files = systemfunc("ls -d ../wrfout/wrfout_d03_*") + ".nc"
+  member = dimsizes(files)
+  a = addfiles( files , "r")
+do mm = 0,member-1
+  date = stringtochar(files(mm))
+  times    = wrf_user_getvar(a[mm],"times",-1)
   ntimes   = dimsizes(times) ; number of times in the files
-  w_noplt  = wrf_user_getvar(a,"wa",0)
+  w_noplt  = wrf_user_getvar(a[mm],"wa",0)
   ;printVarSummary(w_noplt)
   nlev     = dimsizes(w_noplt(:,0,0))
   nlat     = dimsizes(w_noplt(0,:,0))
   nlon     = dimsizes(w_noplt(0,0,:))
-  lon = wrf_user_getvar(a,"XLONG",0)
-  lat = wrf_user_getvar(a,"XLAT",0)
+  lon = wrf_user_getvar(a[mm],"XLONG",0)
+  lat = wrf_user_getvar(a[mm],"XLAT",0)
 print("Domain:"+ntimes+"|"+nlev+"|"+nlat+"|"+nlon+" .......Get Dimensions!!")
-hgt = wrf_user_getvar(a,"HGT",0)  ;hgt = a->HGT(0,:,:)
+hgt = wrf_user_getvar(a[mm],"HGT",0)  ;hgt = a->HGT(0,:,:)
 print(max(hgt))
 print(times)
 ;----------------------------------
 setfileoption("bin","WriteByteOrder","LittleEndian")
 UNDEF = 9.96921e+36
-fName = "lwplclwdbz.bin"
-fName2 = "cloud_char.bin"
+fName = date(21:33)+"_lwplclwdbz.bin"
+fName2 = date(21:33)+"_cloud_char.bin"
 nv = 9 
  var1 = new((/nv,ntimes,nlat,nlon/),float,UNDEF)
  var2 = new((/3,ntimes,nlat,nlon/),float,UNDEF)
@@ -197,7 +198,7 @@ end do ; dam
     print(t+","+var2_avg(0,:,t))
     print("---------------")
  end do
- File_out = "score.bin"
+ File_out = date(21:33)+"_score.bin"
  system("rm "+File_out)
  setfileoption("bin","WriteByteOrder","LittleEndian")
  fbindirwrite(File_out,score(:,:))
@@ -205,5 +206,13 @@ end do ; dam
     fbindirwrite(File_out,var1_avg(:,vv,:))
  end do
     fbindirwrite(File_out,var2_avg(:,0,:))
+
+delete(times)
+delete(var1)
+delete(var2)
+delete(var1_avg)
+delete(var2_avg)
+delete(score)
+end do ;mm
 ;------------------------------------------------------------------------
 end
