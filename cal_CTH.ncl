@@ -5,7 +5,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
 
 begin
 ;-------------------------------------------------------------------------
-  files = systemfunc("ls -d ../wrfout/wrfout_d03_*") + ".nc"
+  files = systemfunc("ls -d ./wrfout_d03_*") + ".nc"
   member = dimsizes(files)
   a = addfiles( files , "r")
   times    = wrf_user_getvar(a[0],"times",-1)
@@ -21,13 +21,13 @@ print("Domain:"+ntimes+"|"+nlev+"|"+nlat+"|"+nlon+" .......Get Dimensions!!")
 hgt = wrf_user_getvar(a[0],"HGT",0)  ;hgt = a->HGT(0,:,:)
 print(max(hgt))
 
-do mm = 0,member-1
+do mm = 0,member-1-1 ;not output last file
    date = stringtochar(files(mm))
-   ;print(date(21:33))
+   ;print(date(13:25))
    times    = wrf_user_getvar(a[mm],"times",-1)
    ntimes   = dimsizes(times) ; number of times in the files
 setfileoption("bin","WriteByteOrder","LittleEndian")
-File_out = date(21:33)+"_cloud_char.bin"
+File_out = date(13:25)+"_cloud_char.bin"
 system("rm "+File_out)
 ;----------------------------------
 do t = 0,ntimes-1

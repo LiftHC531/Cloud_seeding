@@ -5,7 +5,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
 
 begin
 ;-------------------------------------------------------------------------
-  files = systemfunc("ls -d ../wrfout/wrfout_d03_*") + ".nc"
+  files = systemfunc("ls -d ./wrfout_d03_*") + ".nc"
   member = dimsizes(files)
   a = addfiles( files , "r")
 do mm = 0,member-1
@@ -26,8 +26,8 @@ print(times)
 ;----------------------------------
 setfileoption("bin","WriteByteOrder","LittleEndian")
 UNDEF = 9.96921e+36
-fName = date(21:33)+"_lwplclwdbz.bin"
-fName2 = date(21:33)+"_cloud_char.bin"
+fName = date(13:25)+"_lwplclwdbz.bin"
+fName2 = date(13:25)+"_cloud_char.bin"
 nv = 9 
  var1 = new((/nv,ntimes,nlat,nlon/),float,UNDEF)
  var2 = new((/3,ntimes,nlat,nlon/),float,UNDEF)
@@ -198,7 +198,7 @@ end do ; dam
     print(t+","+var2_avg(0,:,t))
     print("---------------")
  end do
- File_out = date(21:33)+"_score.bin"
+ File_out = date(13:25)+"_score.bin"
  system("rm "+File_out)
  setfileoption("bin","WriteByteOrder","LittleEndian")
  fbindirwrite(File_out,score(:,:))
