@@ -21,7 +21,7 @@ print("Domain:"+ntimes+"|"+nlev+"|"+nlat+"|"+nlon+" .......Get Dimensions!!")
 hgt = wrf_user_getvar(a[0],"HGT",0)  ;hgt = a->HGT(0,:,:)
 print(max(hgt))
 ;----------------------------------
-do mm = member-2,member-1
+do mm = 0,member-1
  date = stringtochar(files(mm))
  ;print(date(21:33))
  times    = wrf_user_getvar(a[mm],"times",-1)
@@ -142,7 +142,6 @@ rain_instant(0,:,:) = rain_instant(1,:,:)
  delete(rain_exp)
  delete(rain_con)
  delete(rain_tot)
- delete(rain_instant)
 end do ; mm
 ;------------------------------------------------------------------------
 end
