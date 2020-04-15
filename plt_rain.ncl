@@ -5,11 +5,12 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
 
 begin
 ;-------------------------------------------------------------------------
- files = systemfunc("ls -d ../wrfout/wrfout_d03_*") + ".nc"
+ files = systemfunc("ls -d ./wrfout_d03_*") + ".nc"
   member = dimsizes(files)
   a = addfiles( files , "r")
-do mm = 0,member-1
+do mm = 0,member-1-1 ;not ouput last file
   date = stringtochar(files(mm))
+  ;print(date(13:25))
   times    = wrf_user_getvar(a[mm],"times",-1)
   ntimes   = dimsizes(times) ; number of times in the files
   w_noplt  = wrf_user_getvar(a[mm],"wa",0)
@@ -45,17 +46,24 @@ rain_tot = new( (/ntimes,nlat,nlon/), float,UNDEF)
 
   rain_12h = new ( (/nlat,nlon/), float, UNDEF)
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ti =  0;11 
-  tf =  12;23
+if (date(24:25).eq."12") then
+    ti = 12
+    tf = 23
+    day = sprinti("%2.2i", stringtointeger(date(21:22)) + 1)
+else
+    ti = 0
+    tf = 12
+    day = sprinti("%2.2i", stringtointeger(date(21:22)) )
+end if
 print("from: "+times(ti))
-print("to: "+times(tf))
+print("  to: "+times(tf))
      rain_12h(:,:) =  rain_tot(tf,:,:) - rain_tot(ti,:,:)
 ;=============================================================================
 if (True) then
 wks_type = "png"
 wks_type@wkWidth = 3000 ;page resolution
 wks_type@wkHeight = 3000
-  imagename = date(21:33)+"_12hr_QPF"
+  imagename = date(13:20)+day+"_12hr_QPF"
 ;=================
   wks = gsn_open_wks(wks_type,imagename)
 ;=================
@@ -103,7 +111,7 @@ mpres@tmYLMajorThicknessF = 25
 ;>>>>>>>>>>>>>>
 res_pn = True
 res_pn@gsnMaximze = True
-res_pn@txString ="~F26~                "+date(21:30)
+res_pn@txString ="~F26~                "+date(13:20)+day
 ;res_pn@gsnPanelYWhiteSpacePercent = 10 ;Add white space bar/wks plots
 res_pn@gsnPanelLabelBar = True        ;Turn on common labelbar
 res_pn@lbBoxSeparatorLinesOn= False
@@ -121,7 +129,7 @@ res_pn@lbTitleFontHeightF= 0.02               ; make title smaller
 res_pn@lbTitleDirection = "Across"             ; title direction
 ;>>>>>>>>>>>>>>
 ;res@FieldTitle = "from "+times(ti)+" to "+times(tf)
-res@FieldTitle = "~F26~12-hr accumulated precipitation"
+res@FieldTitle = "~F26~12-hr accumulated precipitation (NCU PBLAP WRF)"
 contour = wrf_contour(a[mm],wks,rain_12h(:,:),res)
 plot_pn =  wrf_map_overlays(a[mm],wks,(/contour/),pltres,mpres)
 
