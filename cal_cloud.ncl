@@ -103,7 +103,7 @@ rain_instant(0,:,:) = rain_instant(1,:,:)
 ;----------------------------------
  print(date(13:25))
  File_out = date(13:25)+"_lwplclwdbz.bin"
- system("rm "+File_out)
+ system("rm -f "+File_out)
  setfileoption("bin","WriteByteOrder","LittleEndian")
  fbindirwrite(File_out,lwp)
  fbindirwrite(File_out,lcl(1,:,:,:))

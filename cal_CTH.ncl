@@ -28,7 +28,7 @@ do mm = 0,member-1-1 ;not output last file
    ntimes   = dimsizes(times) ; number of times in the files
 setfileoption("bin","WriteByteOrder","LittleEndian")
 File_out = date(13:25)+"_cloud_char.bin"
-system("rm "+File_out)
+system("rm -f "+File_out)
 ;----------------------------------
 do t = 0,ntimes-1
   print("Time: "+times(t))

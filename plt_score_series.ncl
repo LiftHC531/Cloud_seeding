@@ -7,7 +7,7 @@ begin
 ;-------------------------------------------------------------------------
 setfileoption("bin","ReadByteOrder","LittleEndian")
 UNDEF = 9.96921e+36
-files_a = systemfunc("ls -d ./2020-04-*_score.bin")
+files_a = systemfunc("ls -d ./*_score.bin")
 member = dimsizes(files_a)
 print(files_a)
 nt = 24

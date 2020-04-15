@@ -51,7 +51,7 @@ do dam = 0,3-1
     do vv  = 0,nv-1
        stat = stat_dispersion(var1(vv,t,lat_c(dam)-5:lat_c(dam)+5,lon_c(dam)-5:lon_c(dam)+5),False)
        ;printVarSummary(stat)
-       if (vv.eq.4) then
+       if (vv.eq.4) then ;cloud top T (ctt)
           var1_avg(dam,vv,t) = stat(2) ;min.
        else
           var1_avg(dam,vv,t) = stat(8) ;median
@@ -205,8 +205,9 @@ end do ; dam
  do vv = 0,nv-1
     fbindirwrite(File_out,var1_avg(:,vv,:))
  end do
-    fbindirwrite(File_out,var2_avg(:,0,:))
-
+ do vv = 0,3-1
+    fbindirwrite(File_out,var2_avg(:,vv,:))
+ end do
 delete(times)
 delete(var1)
 delete(var2)
