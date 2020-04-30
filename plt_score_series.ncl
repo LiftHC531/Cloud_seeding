@@ -11,7 +11,7 @@ files_a = systemfunc("ls -d ./*_score.bin")
 member = dimsizes(files_a)
 print(files_a)
 nt = 24
-ndam = 3
+ndam = 5 
 score = new ( (/ndam,nt/), float, UNDEF)
 do mm = 0,member-1
    score = fbindirread(files_a(mm), 0, (/ndam,nt/), "float")
@@ -85,10 +85,10 @@ res2@xyLineThicknesses = 30
   res@lgTitleOn              = True                ; turn on legend title
   res@lgTitleString          = "Reservoir"         ; create legend title
   res@lgTitleFontHeightF     = .020                ; font of legend title
-  res@xyExplicitLegendLabels = (/"  Shi-Men","  Zeng-Wen","  Nun-Hua"/)         ; explicit labels
-  res@xyLineColors = (/"black","red","blue"/)
-  res@xyLineThicknesses = (/30,30,30/)
-  res@xyDashPatterns = (/0,0,0/)
+  res@xyExplicitLegendLabels = (/"  Shi-Men"," Bao-Shan II","  Zeng-Wen","  Nan-Hua"," Kao-Ping"/)         ; explicit labels
+  res@xyLineColors = (/"black","orange","red","blue","purple"/)
+  res@xyLineThicknesses = (/30,30,30,30,30/)
+  res@xyDashPatterns = (/0,0,0,0,0/)
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 res_pn = True
 ;>>>>>>>>>>>>>>

@@ -24,15 +24,15 @@ UNDEF = 9.96921e+36
 files_a = systemfunc("ls -d ./*_score.bin")
 member = dimsizes(files_a)
 print(files_a)
-dam = (/"Shimen","Zengwen","Nunhua"/)
+dam = (/"Shimen","Baoshan","Zengwen","Nanhua","Kaoping"/)
 nv = 1+9+1;3
-ndam = 3
+ndam = dimsizes(dam) 
 nt = 24
 var = new ( (/nv,ndam,nt/), float, UNDEF)
 ;----
 id = (/5,10,2,3,7,8,6/)
 nid = dimsizes(id)
-var_rg = new ( (/nv,ndam,2/), float, UNDEF) ;min & max
+var_rg = new ( (/member,nv,ndam,3/), float, UNDEF) ;min & max
 do mm = 0,member-1
    ;std = var
    ;std = 3.0
@@ -55,24 +55,98 @@ do mm = 0,member-1
          var(vv,:,:) = where(var(vv,:,:).ne.0.0,var(vv,:,:),UNDEF)
       end if
       do dd = 0,ndam-1
-         var_rg(vv,dd,0) = min(var(vv,dd,ti:tf))
-         var_rg(vv,dd,1) = max(var(vv,dd,ti:tf))
+         var_rg(mm,vv,dd,0) = min(var(vv,dd,ti:tf))
+         var_rg(mm,vv,dd,1) = max(var(vv,dd,ti:tf))
+         var_rg(mm,vv,dd,2) = avg(var(vv,dd,ti:tf))
       end do
    end do
-   var_rg(2,:,:) = var_rg(2,:,:)*1.E-3 ;base of cloud
-   var_rg(10,:,:) = var_rg(10,:,:)*1.E-3 ; thickness of cloud
+   var_rg(mm,2,:,:) = var_rg(mm,2,:,:)*1.E-3 ;base of cloud
+   var_rg(mm,10,:,:) = var_rg(mm,10,:,:)*1.E-3 ; thickness of cloud
+   do vv = 0,nv-1
+     do dd = 0,ndam-1
+      do ddd = 0,3-1
+         if (ismissing(var_rg(mm,vv,dd,0))) then
+             var_rg(mm,vv,dd,0) = -999
+         end if
+         if (ismissing(var_rg(mm,vv,dd,1))) then
+             var_rg(mm,vv,dd,1) = -999
+         end if
+         if (ismissing(var_rg(mm,vv,dd,2))) then
+             var_rg(mm,vv,dd,2) = -999
+         end if
+      end do
+     end do
+   end do
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   ;sprintf("%5.2f", x)
+   ;sprintf("%4.1f", x)
    fname = date(2:9)+day+"_sheet.prn"
    write_table(fname, "w", [/date(2:9)+day/], "%s ")
    do dd = 0,ndam-1
       write_table(fname, "a", [/dam(dd)+"---------"/], "%s ")
-      do vv = 0,nid-1
-         write_table(fname, "a", [/var_rg(id(vv),dd,0),"~",var_rg(id(vv),dd,1)/], "%5.2f%s%5.2f")
+      do vv = 0,2
+         write_table(fname, "a", [/var_rg(mm,id(vv),dd,2)/], "%4.1f")
+      end do
+      do vv = 2,nid-1
+         write_table(fname, "a", [/var_rg(mm,id(vv),dd,0),"~",var_rg(mm,id(vv),dd,1)/], "%4.1f%s%4.1f")
       end do
    end do
 
 end do
-;------------------------------------------------------------------------
+
+files_b = "12hr_rain.bin"
+nday = 5
+rain = new ( (/nday,ndam/), float, UNDEF)
+rh = new ( (/nday,ndam/), float, UNDEF)
+nrh = 0
+do dd = 0,ndam-1
+  rain(:,dd) = fbindirread(files_b, nrh, (/nday/), "float")
+  rh(:,dd) = fbindirread(files_b, nrh+1, (/nday/), "float")
+  nrh = nrh + 2 
+end do
+do dd = 0,ndam-1
+   do da = 0,nday-1
+      if (ismissing(rain(da,dd))) then
+          rain(da,dd) = 0.0
+      end if
+      if (ismissing(rh(da,dd))) then
+          rh(da,dd) = 0.0
+      end if
+   end do
+end do 
+
+   fname = "forecast_sheet.prn"
+      write_table(fname, "w", [/"---------"/], "%s ")
+   do dd = 0,ndam-1
+      write_table(fname, "a", [/dam(dd)+"---------"/], "%s ")
+      write_table(fname, "a", [/rh(0,dd),",",rh(1,dd),",",rh(2,dd),",",rh(3,dd),",",rh(4,dd)/], \
+                                 "%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f")
+      write_table(fname, "a", [/rain(0,dd),",",rain(1,dd),",",rain(2,dd),",",rain(3,dd),",",rain(4,dd)/], \
+                                 "%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f")
+      do vv = 0,2
+         write_table(fname, "a", [/var_rg(0,id(vv),dd,2),",",var_rg(1,id(vv),dd,2),",", \
+                                   var_rg(2,id(vv),dd,2),",",var_rg(3,id(vv),dd,2),",", \
+                                   var_rg(4,id(vv),dd,2)/], "%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f")
+      end do
+      do vv = 3,nid-1
+         if (vv.ne.4.and.vv.ne.5) then
+         write_table(fname, "a", [/var_rg(0,id(vv),dd,0),"~",var_rg(0,id(vv),dd,1),",", \
+                                   var_rg(1,id(vv),dd,0),"~",var_rg(1,id(vv),dd,1),",", \
+                                   var_rg(2,id(vv),dd,0),"~",var_rg(2,id(vv),dd,1),",", \
+                                   var_rg(3,id(vv),dd,0),"~",var_rg(3,id(vv),dd,1),",", \
+                                   var_rg(4,id(vv),dd,0),"~",var_rg(4,id(vv),dd,1) \
+                             /], "%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f%s%4.1f")
+         else
+         write_table(fname, "a", [/var_rg(0,id(vv),dd,0),"~",var_rg(0,id(vv),dd,1),",", \
+                                   var_rg(1,id(vv),dd,0),"~",var_rg(1,id(vv),dd,1),",", \
+                                   var_rg(2,id(vv),dd,0),"~",var_rg(2,id(vv),dd,1),",", \
+                                   var_rg(3,id(vv),dd,0),"~",var_rg(3,id(vv),dd,1),",", \
+                                   var_rg(4,id(vv),dd,0),"~",var_rg(4,id(vv),dd,1) \
+                             /], "%3.0f%s%3.0f%s%3.0f%s%3.0f%s%3.0f%s%3.0f%s%3.0f%s%3.0f%s%3.0f%s%3.0f")
+         
+         end if
+      end do
+   end do
+
+
 end
 

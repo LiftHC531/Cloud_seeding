@@ -5,7 +5,7 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
 begin
 ;-------------------------------------------------------------------------
   wrf_path = "./"
-  wrf_cont = "wrfout_d03_2020-03-10_000000.nc"
+  wrf_cont = "wrfout_d03_2020-04-29_00:00:00.nc"
   wrf_Name = wrf_path + wrf_cont
   a = addfile( wrf_Name , "r")
   times    = wrf_user_getvar(a,"times",-1)
@@ -30,10 +30,14 @@ print(lon(jc,ic)+", "+lat(jc,ic))
 
 ;pt_lon = 121.1929121  ;shimen
 ;pt_lat =  24.8153923
-;pt_lon = 120.5361886 
+;pt_lon = 120.5361886  ;zengwen 
 ;pt_lat =  23.2478001
-pt_lon = 120.5374418 
-pt_lat =  23.089879
+;pt_lon = 120.5374418  ;nanhua
+;pt_lat =  23.089879
+;pt_lon = 121.0555066   ;baoshen
+;pt_lat =  24.7278826
+pt_lon = 120.4323562   ;kaoping
+pt_lat =  22.6925145
        print("pt:lon="+pt_lon+", lat="+pt_lat)
   do j = 0,nlat-1
    do i = 0,nlon-1

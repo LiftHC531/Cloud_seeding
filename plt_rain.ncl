@@ -36,34 +36,57 @@ print(times)
 ;end do
 ;----------------------------------
  UNDEF =  9.96921e+36                     ; UNDEF
-rain_exp = new( (/ntimes,nlat,nlon/), float,UNDEF)
-rain_con = new( (/ntimes,nlat,nlon/), float,UNDEF)
-rain_tot = new( (/ntimes,nlat,nlon/), float,UNDEF)
-  rain_exp = wrf_user_getvar(a[mm],"RAINNC",-1)
-  rain_con = wrf_user_getvar(a[mm],"RAINC",-1)
-  rain_tot = rain_exp + rain_con
-
-
-  rain_12h = new ( (/nlat,nlon/), float, UNDEF)
+ntt = 2
+rain_exp = new( (/2,ntt,nlat,nlon/), float,UNDEF)
+rain_con = new( (/2,ntt,nlat,nlon/), float,UNDEF)
+rain_tot = new( (/2,ntt,nlat,nlon/), float,UNDEF)
+if (mm .eq. 0) then
+ rain_12h = new ( (/2,member-1,nlat,nlon/), float, UNDEF)
+ rh = new ( (/member-1,ntimes,nlev,nlat,nlon/), float, UNDEF)
+end if
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if (date(24:25).eq."12") then
     ti = 12
-    tf = 23
+    tf = 0
     day = sprinti("%2.2i", stringtointeger(date(21:22)) + 1)
+    rain_exp(0,0,:,:) = wrf_user_getvar(a[mm],"RAINNC",ti)
+    rain_exp(0,1,:,:) = wrf_user_getvar(a[mm+1],"RAINNC",tf)
+    rain_con(0,0,:,:) = wrf_user_getvar(a[mm],"RAINC",ti)
+    rain_con(0,1,:,:) = wrf_user_getvar(a[mm+1],"RAINC",tf)
+    ti2 = 0
+    tf2 = 12
+    rain_exp(1,0,:,:) = wrf_user_getvar(a[mm],"RAINNC",ti2)
+    rain_exp(1,1,:,:) = wrf_user_getvar(a[mm],"RAINNC",tf2)
+    rain_con(1,0,:,:) = wrf_user_getvar(a[mm],"RAINC",ti2)
+    rain_con(1,1,:,:) = wrf_user_getvar(a[mm],"RAINC",tf2)
 else
     ti = 0
     tf = 12
     day = sprinti("%2.2i", stringtointeger(date(21:22)) )
+    rain_exp(0,0,:,:) = wrf_user_getvar(a[mm],"RAINNC",ti)
+    rain_exp(0,1,:,:) = wrf_user_getvar(a[mm],"RAINNC",tf)
+    rain_con(0,0,:,:) = wrf_user_getvar(a[mm],"RAINC",ti)
+    rain_con(0,1,:,:) = wrf_user_getvar(a[mm],"RAINC",tf)
+    ti2 = 12
+    tf2 = 0
+    rain_exp(1,0,:,:) = wrf_user_getvar(a[mm],"RAINNC",ti2)
+    rain_exp(1,1,:,:) = wrf_user_getvar(a[mm+1],"RAINNC",tf2)
+    rain_con(1,0,:,:) = wrf_user_getvar(a[mm],"RAINC",ti2)
+    rain_con(1,1,:,:) = wrf_user_getvar(a[mm+1],"RAINC",tf2)
 end if
 print("from: "+times(ti))
-print("  to: "+times(tf))
-     rain_12h(:,:) =  rain_tot(tf,:,:) - rain_tot(ti,:,:)
+;print("  to: "+times(tf))
+  rain_tot = rain_exp + rain_con
+  rain_12h(:,mm,:,:) =  rain_tot(:,1,:,:) - rain_tot(:,0,:,:)
+
+rh(mm,:,:,:,:) = wrf_user_getvar(a[mm],"rh",-1) 
 ;=============================================================================
 if (True) then
 wks_type = "png"
 wks_type@wkWidth = 3000 ;page resolution
 wks_type@wkHeight = 3000
-  imagename = date(13:20)+day+"_12hr_QPF"
+ do tt = 0,1
+  imagename = date(13:20)+day+"_12hr_QPF"+tt
 ;=================
   wks = gsn_open_wks(wks_type,imagename)
 ;=================
@@ -111,7 +134,7 @@ mpres@tmYLMajorThicknessF = 25
 ;>>>>>>>>>>>>>>
 res_pn = True
 res_pn@gsnMaximze = True
-res_pn@txString ="~F26~                "+date(13:20)+day
+res_pn@txString ="~F26~             109"+date(17:20)+day
 ;res_pn@gsnPanelYWhiteSpacePercent = 10 ;Add white space bar/wks plots
 res_pn@gsnPanelLabelBar = True        ;Turn on common labelbar
 res_pn@lbBoxSeparatorLinesOn= False
@@ -130,26 +153,25 @@ res_pn@lbTitleDirection = "Across"             ; title direction
 ;>>>>>>>>>>>>>>
 ;res@FieldTitle = "from "+times(ti)+" to "+times(tf)
 res@FieldTitle = "~F26~12-hr accumulated precipitation (NCU PBLAP WRF)"
-contour = wrf_contour(a[mm],wks,rain_12h(:,:),res)
+contour = wrf_contour(a[mm],wks,rain_12h(tt,mm,:,:),res)
 plot_pn =  wrf_map_overlays(a[mm],wks,(/contour/),pltres,mpres)
 
 
 if (True) then
  polyres               = True          ; poly marker mods desired
  polyres@gsMarkerIndex =  12;4           ; choose circle as polymarker
- polyres@gsMarkerSizeF = 20.0           ; select size to avoid streaking
+ polyres@gsMarkerSizeF = 10.0           ; select size to avoid streaking
  polyres@gsMarkerThicknessF = 10 
 ; polyres@gsMarkerOpacityF = 0.3
 
-dumii = new(3,graphic)
 ;ic = (/ 93,71,71/) 
 ;jc = (/136,80,74/)
-xd = new((/3/),float)
-yd = new((/3/),float)
-xd = (/121.1929121,120.5361886,120.5374418/)
-yd = (/24.8153923,23.2478001,23.089879/)
-markcolor = (/"black","red","blue"/)
-do rr = 0,3-1
+xd = (/121.1929121,121.0555066,120.5361886,120.5374418,120.4323562/)
+yd = (/ 24.8153923, 24.7278826, 23.2478001,  23.089879, 22.6925145/)
+markcolor = (/"black","orange","red","blue","purple"/)
+nr = dimsizes(xd)
+dumii = new(nr,graphic)
+do rr = 0,nr-1
    ;xd(rr) = lon(jc(rr),ic(rr))
    ;yd(rr) = lat(jc(rr),ic(rr))
  polyres@gsMarkerColor = markcolor(rr)   ; choose color
@@ -157,6 +179,7 @@ do rr = 0,3-1
 end do
 delete(xd)
 delete(yd)
+delete(nr)
 end if
 
 if (False) then
@@ -188,17 +211,36 @@ end if
   poly3 = gsn_add_shapefile_polylines(wks,plot_pn(0),dir3+filename3,lnres)
 
 
-end if
   gsn_panel(wks,plot_pn(0),(/1,1/),res_pn)
-
-  delete(rain_exp)
-  delete(rain_con)
-  delete(rain_tot)
-  delete(rain_12h)
   delete(res)
   delete(pltres)
   delete(mpres)
+ end do; tt 00-12 12-00
+end if
+  delete(rain_exp)
+  delete(rain_con)
+  delete(rain_tot)
+  ;;delete(rain_12h)
 end do
+lat_c = (/136,132,80,74,60/)  ; y
+lon_c = (/ 93, 88,71,71,68/)  ; x
+ndam = dimsizes(lat_c)
+rain_sheet = new ( (/ndam,member-1/), float, UNDEF)
+rh_sheet = new ( (/ndam,member-1/), float, UNDEF)
+do mm = 0,member-1-1
+   do dam = 0,ndam-1
+      rain_sheet(dam,mm) = max(rain_12h(0,mm,lat_c(dam)-1:lat_c(dam)+1,lon_c(dam)-1:lon_c(dam)+1))
+      rh_sheet(dam,mm) = avg(rh(mm,:,0,lat_c(dam)-1:lat_c(dam)+1,lon_c(dam)-1:lon_c(dam)+1))
+   end do
+end do
+File_out = "12hr_rain.bin"
+ system("rm -f "+File_out)
+ setfileoption("bin","WriteByteOrder","LittleEndian")
+do dam = 0,ndam-1
+   fbindirwrite(File_out,rain_sheet(dam,:))
+   fbindirwrite(File_out,rh_sheet(dam,:))
+end do
+
 ;------------------------------------------------------------------------
 end
 

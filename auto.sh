@@ -5,16 +5,16 @@ then
    cp /work3/artirain/Cloud_seeding/*.m .
    sleep 3 ; chmod +x *.m
    ncl plt_rain.ncl &
-   PID=$! 
-   ncl cal_cloud.ncl >& info1.txt 
-   ncl cal_CTH.ncl >& info2.txt 
+   PID=$! ; sleep 0.5
+   wait $PID
+   matlab -nodesktop -nosplash -nojvm -r "run ./rain_fig.m;quit;"&
+   ncl cal_cloud.ncl >& info1.txt ; sleep 5 
+   ncl cal_CTH.ncl >& info2.txt ; sleep 30
    for job in `jobs -p`
    do
        echo "Wait job: ${job}"
        #wait $job
    done
-   wait $PID
-   matlab -nodesktop -nosplash -nojvm -r "run ./rain_fig.m;quit;"&
 fi
 
 wait #cal_cloud.ncl & cal_CTH.ncl

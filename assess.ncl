@@ -42,14 +42,15 @@ do t = 0,ntimes-1
   nrh = nrh + 3
 end do
 var1(4-1,:,:,:) = 10.0^var1(4-1,:,:,:) 
-lat_c = (/136,80,74/)  ; y
-lon_c = (/ 93,71,71/)  ; x
- var1_avg = new((/3,nv,ntimes/),float,UNDEF)
- var2_avg = new((/3,3,ntimes/),float,UNDEF)
-do dam = 0,3-1
+lat_c = (/136,132,80,74,60/)  ; y
+lon_c = (/ 93, 88,71,71,68/)  ; x
+ndam = dimsizes(lat_c)
+ var1_avg = new((/ndam,nv,ntimes/),float,UNDEF)
+ var2_avg = new((/ndam,3,ntimes/),float,UNDEF)
+do dam = 0,ndam-1
  do t = 0,ntimes-1
     do vv  = 0,nv-1
-       stat = stat_dispersion(var1(vv,t,lat_c(dam)-5:lat_c(dam)+5,lon_c(dam)-5:lon_c(dam)+5),False)
+       stat = stat_dispersion(var1(vv,t,lat_c(dam)-1:lat_c(dam)+1,lon_c(dam)-1:lon_c(dam)+1),False)
        ;printVarSummary(stat)
        if (vv.eq.4) then ;cloud top T (ctt)
           var1_avg(dam,vv,t) = stat(2) ;min.
@@ -59,7 +60,7 @@ do dam = 0,3-1
        delete(stat)
     end do
     do vv = 0,3-1
-       stat = stat_dispersion(var2(vv,t,lat_c(dam)-5:lat_c(dam)+5,lon_c(dam)-5:lon_c(dam)+5),False)
+       stat = stat_dispersion(var2(vv,t,lat_c(dam)-1:lat_c(dam)+1,lon_c(dam)-1:lon_c(dam)+1),False)
        ;printVarSummary(stat)
        var2_avg(dam,vv,t) = stat(8) ;median
        delete(stat)
@@ -69,9 +70,9 @@ end do
 var1_avg(:,3,:) = log10(var1_avg(:,3,:))
 print(var1_avg(0,0,:))
 ;----------------------------------
- score = new((/3,ntimes/),float,UNDEF)
+ score = new((/ndam,ntimes/),float,UNDEF)
  score = 0.0
-do dam = 0,3-1
+do dam = 0,ndam-1
  do t = 0,ntimes-1
     do vv  = 0,nv-1
        if (vv.eq.0) then ;LWP
