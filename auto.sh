@@ -1,5 +1,6 @@
 #!/bin/bash
 source activate pyn_env2
+
 if [ 1 ]
 then
    cp /work3/artirain/Cloud_seeding/*.ncl .

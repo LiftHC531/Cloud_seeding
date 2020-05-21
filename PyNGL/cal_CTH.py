@@ -7,6 +7,7 @@ import Ngl; import Nio
 import netCDF4 as nc
 import xarray as xr
 from wrf import getvar,ALL_TIMES,interplevel
+
 #print(Nio.__version__)
 ##._FillValue = 9.96920996839e+36
 def info(ff):
