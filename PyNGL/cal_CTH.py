@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-#import math
 import os
 #from os.path import isfile, join
 import glob

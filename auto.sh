@@ -1,4 +1,5 @@
 #!/bin/bash
+source activate pyn_env2
 if [ 1 ]
 then
    cp /work3/artirain/Cloud_seeding/*.ncl .
@@ -8,8 +9,8 @@ then
    PID=$! ; sleep 0.5
    wait $PID
    matlab -nodesktop -nosplash -nojvm -r "run ./rain_fig.m;quit;"&
-   ncl cal_cloud.ncl >& info1.txt ; sleep 5 
-   ncl cal_CTH.ncl >& info2.txt ; sleep 30
+   ncl cal_CTH.ncl >& info2.txt ; sleep 5 
+   ncl cal_cloud.ncl >& info1.txt ; sleep 30 
    for job in `jobs -p`
    do
        echo "Wait job: ${job}"
