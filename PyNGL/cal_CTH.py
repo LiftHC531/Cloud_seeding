@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import wrf_dim_info #local function
+from time import time as cpu_time
 import numpy as np
 import os
 #from os.path import isfile, join
@@ -7,20 +9,12 @@ import Ngl; import Nio
 import netCDF4 as nc
 import xarray as xr
 from wrf import getvar,ALL_TIMES,interplevel
+#from joblib import Parallel, delayed
 
 #print(Nio.__version__)
 ##._FillValue = 9.96920996839e+36
-def info(ff):
-    wa = getvar(ff, "wa", timeidx=0)
-    nk = len(wa[:,0,0])
-    ny = len(wa[0,:,0])
-    nx = len(wa[0,0,:]); del wa
-    t = getvar(ff, "times", timeidx=ALL_TIMES) #-1 isn't work
-    nt = len(t)
-    return nt, nk, ny, nx, t
-    
 def cloud(ff,time):
-    (t,k,y,x,tt) = info(ff);del t,k,tt
+    (t,k,y,x,tt) = wrf_dim_info.info(ff);del t,k,tt
     qc = getvar(ff, "QCLOUD", timeidx=time) #kg kg-1
     qi = getvar(ff, "QICE", timeidx=time)
     qs = getvar(ff, "QSNOW", timeidx=time)
@@ -34,7 +28,7 @@ def cloud(ff,time):
     for k in range(nk):
         lev[k] = kk; #print(lev[k])
         tot[k,:,:] = interplevel(temp, z, lev[k])    
-        kk = kk + 100.0
+        kk += 100.0 # kk = kk + 100.0
     tot = np.where(np.isnan(tot) ,-999.9,tot)
     """ cloud fraction """
     cldfra = np.zeros(shape=(nk,y,x), dtype=int) 
@@ -42,6 +36,7 @@ def cloud(ff,time):
     #print(cldfra.shape) 
     return cldfra, lev, nk
 #--------------------------------------------------------------------
+start_time = cpu_time()
 files = glob.glob("wrfout_d03*") #list
 #print(type(files))
 nf = len(files); #print(nf); print(files[0:nf])
@@ -49,12 +44,12 @@ nf = len(files); #print(nf); print(files[0:nf])
 #print(files.shape)
 
 #a = nc.MFDataset(files)
-for i,f in enumerate(files[0:nf-1]):
+for nid,f in enumerate(files[0:1]):#nf-1]):
     File_out = str(f)[11:24]+"_cloud_char.bin"; print("output:",File_out)
     newFile = open(File_out,"wb")
     a = nc.Dataset(f)
-    (ntimes, nlev, nlat, nlon, times) = info(a)
-    print("File:",i,f,"\nDomain:{}".format(ntimes)+"|{}".format(nlev)+\
+    (ntimes, nlev, nlat, nlon, times) = wrf_dim_info.info(a)
+    print("File:",nid,f,"\nDomain:{}".format(ntimes)+"|{}".format(nlev)+\
     "|{}".format(nlat)+"|{}".format(nlon)," .......Get Dimensions!!")
     for t in range(ntimes):
         print("\tCloud variables Cal. Time:"+str(times[t].values)[0:19])
@@ -85,10 +80,11 @@ for i,f in enumerate(files[0:nf-1]):
         newFile.write(c_thick_byte)
         newFile.write(c_top_byte)
         newFile.write(c_base_byte)
-    del a
+    del a #loop t
 
 
-
+end_time = cpu_time(); end_time = (end_time - start_time)/60.0
+print("cal_cloud.py has done!\nTime elapsed: {:.2f}".format(end_time), "mins.")
 Ngl.end()
 #Nio.end()
 #exit()
