@@ -89,20 +89,20 @@ def dbz_kernel(ny,nx,dbz):
 (int32, int32, int32, float32[:,:,:], float32[:,:,:]) \
 , nopython=True, nogil=True)
 def RH_kernel(nz,ny,nx,rh,z):
-    rh1500 = np.zeros(shape=(ny,nx),dtype=np.float32) 
-    rh1500[:,:] = 100.0 
-    rh5000 = rh1500 
+    rh15 = np.empty(shape=(ny,nx),dtype=np.float32) 
+    rh50 = np.empty(shape=(ny,nx),dtype=np.float32) 
+    rh15[:,:] = 100.0; rh50[:,:] = 100.0 
     for j in range(ny):
         for i in range(nx):
             for k in range(nz):
-                if (z[k,j,i] <= 1500.0 and rh1500[j,i] >= rh[k,j,i]):
-                    rh1500[j,i] = rh[k,j,i]
+                if (z[k,j,i] <= 1500.0):
+                    if (rh15[j,i] >= rh[k,j,i]):
+                        rh15[j,i] = rh[k,j,i]
+                elif (z[k,j,i] > 1500.0 and z[k,j,i] <= 5000.0):
+                    if (rh50[j,i] >= rh[k,j,i]):
+                        rh50[j,i] = rh[k,j,i]
 
-                if (z[k,j,i] >= 1500.0 and z[k,j,i] <= 5000.0 \
-                    and rh5000[j,i] >= rh[k,j,i]):
-                    rh5000[j,i] = rh[k,j,i]
-
-    return rh1500, rh5000        
+    return rh15, rh50        
 #--------------------------------------------------------------------
 start_time = cpu_time()
 files = glob.glob("wrfout_d03*"); del glob #list
@@ -113,8 +113,6 @@ nf = len(files); #print(nf); print(files[0:nf])
 
 #a = nc.MFDataset(files)
 for nid,f in enumerate(files[0:nf-1]):
-    File_out = str(f)[11:24]+"_lwplclwdbz.bin"; print("output:",File_out)
-    newFile = open(File_out,"wb")
     a = nc.Dataset(f)
     (ntimes, nlev, nlat, nlon, times) = wrf_dim_info.info(a)
     print("File:",nid,f,"\nDomain:{}".format(ntimes)+"|{}".format(nlev)+\
@@ -129,13 +127,15 @@ for nid,f in enumerate(files[0:nf-1]):
     ctt = np.zeros(shape=(ntimes,nlat,nlon),dtype=np.float32)
     vel_500 = np.zeros(shape=(ntimes,nlat,nlon),dtype=np.float32)
     for t in range(ntimes):
-        print(str(times[t].values)[0:19])
+        print("\t"+str(times[t].values)[0:19])
         (rhoxqc, z, dbz, ctt[t,:,:], rh, lcl[t,:,:], \
          w500[t,:,:], vel_500[t,:,:]) = variables(a,t); #print(rhoxqc.dtype)
         lwp[t,:,:] = lwp_kernel(nlev,nlat,nlon,np.float32(rhoxqc),np.float32(z)) 
         mdbz[t,:,:] = dbz_kernel(nlat,nlon,np.float32(dbz))
         (rh1500[t,:,:],rh5000[t,:,:]) = RH_kernel(nlev,nlat,nlon,np.float32(rh),np.float32(z))
-
+    #----------------------------------------------------------------
+    File_out = str(f)[11:24]+"_lwplclwdbz.bin"; print("\tOutput:",File_out)
+    newFile = open(File_out,"wb")
     newFile.write(bytearray(lwp))
     newFile.write(bytearray(lcl))
     newFile.write(bytearray(w500))

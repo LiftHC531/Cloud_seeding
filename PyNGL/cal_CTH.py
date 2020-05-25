@@ -64,14 +64,15 @@ for nid,f in enumerate(files[0:1]):#nf-1]):
                     if (cldfra[k,j,i] == 1 and cldfra[k-1,j,i] == 0 \
                         and c_base[j,i] == 0.0):
                         c_base[j,i] = lev[k] #get cloud base
-                    
+                   #------------------------------------------------- 
                     if (k < nk-1):
                        if (cldfra[k+1,j,i] == 0 and cldfra[k,j,i] == 1):
                            c_top[j,i] = lev[k]
                     elif (k == nk-1 and cldfra[k,j,i] == 1):
                           c_top[j,i] = lev[k] 
-        #del cldfra, lev, nk 
-        print(str(cldfra[:,190,1]))
+        #------------------------------------------------------------ 
+        #print(str(cldfra[:,190,1]))
+        del cldfra, lev, nk 
         #c_thick = c_top - c_base;# print(c_thick.shape)
         print(str(c_thick[190,1]),str(c_top[190,1]),str(c_base[190,1])) 
         c_thick_byte = bytearray(c_thick)

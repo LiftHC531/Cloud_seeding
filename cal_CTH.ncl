@@ -31,7 +31,7 @@ File_out = date(13:25)+"_cloud_char.bin"
 system("rm -f "+File_out)
 ;----------------------------------
 do t = 0,ntimes-1
-  print("Time: "+times(t))
+  print("Cloud variables_Time: "+times(t))
   qc = wrf_user_getvar(a[mm],"QCLOUD",t)
   qi = wrf_user_getvar(a[mm],"QICE",t)
   qs = wrf_user_getvar(a[mm],"QSNOW",t)
@@ -83,7 +83,7 @@ do t = 0,ntimes-1
          if(cldfra(k+1,j,i).eq.0.and.cldfra(k,j,i).eq.1) then
          c_top(j,i) = lev(k)
          end if
-       else if (k.eq.nk-1.and.cldfra(k,j,i).eq.1.) then
+       else if (k.eq.nk-1.and.cldfra(k,j,i).eq.1) then
          c_top(j,i) = lev(k)
        end if
        end if

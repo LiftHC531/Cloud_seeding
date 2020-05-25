@@ -1,17 +1,20 @@
 #!/bin/bash
-source activate pyn_env2
 
-if [ 1 ]
-then
+start_time=$(date +"%s") 
+conda activate met_env
+if (( 1 )); then
    cp /work3/artirain/Cloud_seeding/*.ncl .
    cp /work3/artirain/Cloud_seeding/*.m .
+   cp /work3/artirain/Cloud_seeding/PyNGL/wrf_dim_info.py .
+   cp /work3/artirain/Cloud_seeding/PyNGL/cal_cloud.py .
+   cp /work3/artirain/Cloud_seeding/PyNGL/cal_CTH.py .
    sleep 3 ; chmod +x *.m
    ncl plt_rain.ncl &
    PID=$! ; sleep 0.5
    wait $PID
    matlab -nodesktop -nosplash -nojvm -r "run ./rain_fig.m;quit;"&
-   ncl cal_CTH.ncl >& info2.txt ; sleep 5 
-   ncl cal_cloud.ncl >& info1.txt ; sleep 30 
+   python cal_CTH.py >& info2.txt ; sleep 5 
+   python cal_cloud.py >& info1.txt ; sleep 1 
    for job in `jobs -p`
    do
        echo "Wait job: ${job}"
@@ -28,4 +31,7 @@ FileName=ser_fig.m
 #cp /work3/artirain/Cloud_seeding/$FileName .
 matlab -nodesktop -nosplash -nojvm -r "run ./$FileName;quit;"&
 wait
+end_time=$(date +"%s"); end_time=$[end_time-start_time] 
+end_time=$(echo "scale=2;$end_time/60" | bc)
+echo -e "auto.sh has done!\nTime elapsed: ${end_time} mins."
 echo "All Done!!!!! get score_series_panel.png"
