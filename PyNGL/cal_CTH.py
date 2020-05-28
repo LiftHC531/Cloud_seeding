@@ -9,32 +9,49 @@ import Ngl; import Nio
 import netCDF4 as nc
 import xarray as xr
 from wrf import getvar,ALL_TIMES,interplevel
+from numba import jit, vectorize, int32, float32, types
+from concurrent.futures import ProcessPoolExecutor,ThreadPoolExecutor
 #from joblib import Parallel, delayed
 
 #print(Nio.__version__)
 ##._FillValue = 9.96920996839e+36
-def cloud(ff,time):
-    (t,k,y,x,tt) = wrf_dim_info.info(ff);del t,k,tt
+def interp_var(lev):
+    global q_all, z
+    result = interplevel(q_all, z, lev)
+    return result
+
+def delta_z():
+    kk = 900.0 #m bottom
+    nk = 122   #top 13.0 km
+    lev = np.zeros(nk,dtype=np.float32)
+    for k in range(nk):
+        lev[k] = kk; #print(lev[k])
+        kk += 100.0
+    return lev, nk
+
+def get_variable(ff,time):
+    z = getvar(ff, "z", timeidx=time)
     qc = getvar(ff, "QCLOUD", timeidx=time) #kg kg-1
     qi = getvar(ff, "QICE", timeidx=time)
     qs = getvar(ff, "QSNOW", timeidx=time)
-    temp = qc + qi + qs ;del qc, qi, qs
+    temp = qc + qi + qs 
+    return temp,z 
+
+def cloud(ff):
+    global lev, nk
+    (t,k,y,x,tt) = wrf_dim_info.info(ff);del t,k,tt
     """ interpolation """
-    kk = 900.0 # m, bottom 0.9 km
-    nk = 122 #top 13.0 km 
-    lev = np.zeros(nk,dtype=np.float32) 
-    z = getvar(ff, "z", timeidx=time)
-    tot = np.zeros(shape=(nk,y,x), dtype=np.float32) 
-    for k in range(nk):
-        lev[k] = kk; #print(lev[k])
-        tot[k,:,:] = interplevel(temp, z, lev[k])    
-        kk += 100.0 # kk = kk + 100.0
-    tot = np.where(np.isnan(tot) ,-999.9,tot)
+    tot = np.zeros(shape=(nk,y,x), dtype=np.float32)
+    with ProcessPoolExecutor(max_workers=12) as executor:
+         for k,output in enumerate(executor.map(interp_var, lev)):
+             tot[k,:,:] = output; #print(k)
+ 
+    tot = np.where(np.isnan(tot) , -999.9, tot) 
     """ cloud fraction """
     cldfra = np.zeros(shape=(nk,y,x), dtype=int) 
     cldfra = np.where(tot > 10.0**-5, 1, 0); del tot
     #print(cldfra.shape) 
-    return cldfra, lev, nk
+    return cldfra
 #--------------------------------------------------------------------
 start_time = cpu_time()
 files = glob.glob("wrfout_d03*") #list
@@ -42,9 +59,10 @@ files = glob.glob("wrfout_d03*") #list
 nf = len(files); #print(nf); print(files[0:nf])
 #files = np.array(files) #numpy.ndarray
 #print(files.shape)
+(lev,nk) = delta_z()#dz for interpolation
 
 #a = nc.MFDataset(files)
-for nid,f in enumerate(files[0:1]):#nf-1]):
+for nid,f in enumerate(files[0:nf-1]):
     File_out = str(f)[11:24]+"_cloud_char.bin"; print("output:",File_out)
     newFile = open(File_out,"wb")
     a = nc.Dataset(f)
@@ -53,7 +71,8 @@ for nid,f in enumerate(files[0:1]):#nf-1]):
     "|{}".format(nlat)+"|{}".format(nlon)," .......Get Dimensions!!")
     for t in range(ntimes):
         print("\tCloud variables Cal. Time:"+str(times[t].values)[0:19])
-        (cldfra, lev, nk) = cloud(a,t); #print(cldfra.shape)
+        (q_all,z) = get_variable(a,t) #global var.
+        cldfra = cloud(a); #print(cldfra.shape)
         c_thick = np.zeros(shape=(nlat,nlon),dtype=np.float32) 
         c_top = np.zeros(shape=(nlat,nlon),dtype=np.float32) 
         c_base = np.zeros(shape=(nlat,nlon),dtype=np.float32) 
@@ -72,15 +91,12 @@ for nid,f in enumerate(files[0:1]):#nf-1]):
                           c_top[j,i] = lev[k] 
         #------------------------------------------------------------ 
         #print(str(cldfra[:,190,1]))
-        del cldfra, lev, nk 
+        del cldfra 
         #c_thick = c_top - c_base;# print(c_thick.shape)
         print(str(c_thick[190,1]),str(c_top[190,1]),str(c_base[190,1])) 
-        c_thick_byte = bytearray(c_thick)
-        c_top_byte = bytearray(c_top)
-        c_base_byte = bytearray(c_base)
-        newFile.write(c_thick_byte)
-        newFile.write(c_top_byte)
-        newFile.write(c_base_byte)
+        newFile.write(bytearray(c_thick))
+        newFile.write(bytearray(c_top))
+        newFile.write(bytearray(c_base))
     del a #loop t
 
 

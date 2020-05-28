@@ -1,7 +1,7 @@
 #!/bin/bash
 
 start_time=$(date +"%s") 
-conda activate met_env
+source activate met_env
 if (( 1 )); then
    cp /work3/artirain/Cloud_seeding/*.ncl .
    cp /work3/artirain/Cloud_seeding/*.m .
@@ -13,8 +13,8 @@ if (( 1 )); then
    PID=$! ; sleep 0.5
    wait $PID
    matlab -nodesktop -nosplash -nojvm -r "run ./rain_fig.m;quit;"&
-   python cal_CTH.py >& info2.txt ; sleep 5 
-   python cal_cloud.py >& info1.txt ; sleep 1 
+   python cal_CTH.py &  
+   python cal_cloud.py &  
    for job in `jobs -p`
    do
        echo "Wait job: ${job}"
