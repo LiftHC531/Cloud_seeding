@@ -1,6 +1,8 @@
 import urllib.request as req
 from bs4 import BeautifulSoup
 
+#Chrome:  DevTools->Network->"click"->index.html->Request Headers->user-agent
+
 url = "http://radar.atm.ncu.edu.tw/web/#research-four-0-1"
 #Build a request, Argument the info. of headers
 request = req.Request(url, headers={
@@ -14,5 +16,5 @@ root = BeautifulSoup(data, "html.parser")
 #titles = root.find("li", class_="last"); #print(titles.a)
 titles = root.find_all("li", class_="last") #get a list
 for title in titles:
-    if title != None:
+    if title.a != None:
        print(title.a.string)
