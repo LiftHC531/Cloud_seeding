@@ -4,6 +4,10 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
 ;load "/home/mlhchen/big_WRFUserARW.ncl"
 
 begin
+err = NhlGetErrorObjectId()
+  setvalues err
+    "errLevel" : "Fatal"          ; only report Fatal errors
+  end setvalues
 ;-------------------------------------------------------------------------
 setfileoption("bin","ReadByteOrder","LittleEndian")
 UNDEF = 9.96921e+36
@@ -85,7 +89,7 @@ res2@xyLineThicknesses = 30
   res@lgTitleOn              = True                ; turn on legend title
   res@lgTitleString          = "Reservoir"         ; create legend title
   res@lgTitleFontHeightF     = .020                ; font of legend title
-  res@xyExplicitLegendLabels = (/"  Shi-Men"," Bao-Shan II","  Zeng-Wen","  Nan-Hua"," Kao-Ping"/)         ; explicit labels
+  res@xyExplicitLegendLabels = (/"  Shi-Men"," Bao-Shan II","  Zeng-Wen","  Nan-Hua","Feit-Sui"/)         ; explicit labels
   res@xyLineColors = (/"black","orange","red","blue","purple"/)
   res@xyLineThicknesses = (/30,30,30,30,30/)
   res@xyDashPatterns = (/0,0,0,0,0/)

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-import wrf_dim_info #local function
+import sys, os
+sys.path.append("/work3/artirain/Cloud_seeding/PyNGL")
+#local function
+import wrf_tools
 from time import time as cpu_time
 import numpy as np
 import glob
@@ -20,19 +23,19 @@ def integral_with_vec(a,b,c,d,e):
 
 def variables(ff,t):
     """ air density & qc for lwp"""
-    z = getvar(ff, "z", timeidx=t, units="m")
-    p = getvar(ff, "pressure", timeidx=t) #hPa
-    tk = getvar(ff, "tk", timeidx=t) #K
-    rho = p*100.0/tk/287.0;del tk, p #kg m-3
-    qc = getvar(ff, "QCLOUD", timeidx=t); qc = qc*10.0**3 #g/kg
+    z   = getvar(ff, "z", timeidx=t, units="m")
+    p   = getvar(ff, "pressure", timeidx=t) #[hPa]
+    tk  = getvar(ff, "tk", timeidx=t)       #[K]
+    rho = p*100.0/(tk*287.0);del tk, p      #[kg m-3]
+    qc  = getvar(ff, "QCLOUD", timeidx=t); qc *= 1.e3 #[g kg-1]
     rhoxqc = rho*qc; del rho, qc
     """ for CTT, Max.dBZ, 500 m W, 500 m Wind vel. """
     dbz = getvar(ff, "REFL_10CM", timeidx=t) #radar reflectivity
     ctt = getvar(ff, "ctt", timeidx=t, units="degC") #Cloud top T
-    rh = getvar(ff, "rh", timeidx=t) #relative humidity %
-    wa = getvar(ff, "wa", timeidx=t, units="m s-1") 
-    ua = getvar(ff, "ua", timeidx=t, units="m s-1") 
-    va = getvar(ff, "va", timeidx=t, units="m s-1") 
+    rh  = getvar(ff, "rh", timeidx=t) #relative humidity %
+    wa  = getvar(ff, "wa", timeidx=t, units="m s-1") 
+    ua  = getvar(ff, "ua", timeidx=t, units="m s-1") 
+    va  = getvar(ff, "va", timeidx=t, units="m s-1") 
     w500 = interplevel(wa, z, 500.0); del wa #500 m height
     u500 = interplevel(ua, z, 500.0); del ua
     v500 = interplevel(va, z, 500.0); del va
@@ -112,11 +115,15 @@ nf = len(files); #print(nf); print(files[0:nf])
 #print(files.shape)
 
 #a = nc.MFDataset(files)
+print("\033[92m\""+os.path.basename(__file__)+"\" is running ...... \033[0m")
 for nid,f in enumerate(files[0:nf-1]):
     a = nc.Dataset(f)
-    (ntimes, nlev, nlat, nlon, times) = wrf_dim_info.info(a)
-    print("File:",nid,f,"\nDomain:{}".format(ntimes)+"|{}".format(nlev)+\
-    "|{}".format(nlat)+"|{}".format(nlon)," .......Get Dimensions!!")
+    (ntimes, nlev, nlat, nlon, \
+     times, lat, lon, res_base) = wrf_tools.info(a, pyngl_map=False)
+    print("File #{}: {}".format(nid,f))
+    if ntimes < 24:
+       print("\033[91mError: Data missing in time. (nt = {})\033[0m".format(ntimes))
+       exit()
     rain_instant = np.float32(rainint(a,ntimes))
     lwp = np.zeros(shape=(ntimes,nlat,nlon),dtype=np.float32)
     mdbz = np.zeros(shape=(ntimes,nlat,nlon),dtype=np.float32)
@@ -127,14 +134,15 @@ for nid,f in enumerate(files[0:nf-1]):
     ctt = np.zeros(shape=(ntimes,nlat,nlon),dtype=np.float32)
     vel_500 = np.zeros(shape=(ntimes,nlat,nlon),dtype=np.float32)
     for t in range(ntimes):
-        print("\t"+str(times[t].values)[0:19])
+        print("\r\tTime({:02d}/{:02d}): {}".format(t+1,ntimes,times[t]),end="")
         (rhoxqc, z, dbz, ctt[t,:,:], rh, lcl[t,:,:], \
          w500[t,:,:], vel_500[t,:,:]) = variables(a,t); #print(rhoxqc.dtype)
         lwp[t,:,:] = lwp_kernel(nlev,nlat,nlon,np.float32(rhoxqc),np.float32(z)) 
         mdbz[t,:,:] = dbz_kernel(nlat,nlon,np.float32(dbz))
         (rh1500[t,:,:],rh5000[t,:,:]) = RH_kernel(nlev,nlat,nlon,np.float32(rh),np.float32(z))
     #----------------------------------------------------------------
-    File_out = str(f)[11:24]+"_lwplclwdbz.bin"; print("\tOutput:",File_out)
+    File_out = str(f)[11:24]+"_lwplclwdbz.bin"
+    print("\n\033[43m\033[30mOutput: {}\033[0m".format(File_out))
     newFile = open(File_out,"wb")
     newFile.write(bytearray(lwp))
     newFile.write(bytearray(lcl))
@@ -145,9 +153,11 @@ for nid,f in enumerate(files[0:nf-1]):
     newFile.write(bytearray(rh1500))
     newFile.write(bytearray(rh5000))
     newFile.write(bytearray(rain_instant))
+    print("-"*80)
 
 end_time = cpu_time(); end_time = (end_time - start_time)/60.0
-print("cal_cloud.py has done!\nTime elapsed: {:.2f}".format(end_time), "mins.")
+print("\033[92m\"{}\" has done!\nTime elapsed: {:.2f}" \
+ .format(os.path.basename(__file__), end_time), "mins.\033[0m")
 Ngl.end()
 #Nio.end()
 #exit()

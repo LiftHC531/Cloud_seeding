@@ -4,11 +4,15 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
 ;load "/home/mlhchen/big_WRFUserARW.ncl"
 
 begin
+err = NhlGetErrorObjectId()
+  setvalues err
+    "errLevel" : "Fatal"          ; only report Fatal errors
+  end setvalues
 ;-------------------------------------------------------------------------
   files = systemfunc("ls -d ./wrfout_d03_*") + ".nc"
   member = dimsizes(files)
   a = addfiles( files , "r")
-do mm = 0,member-1
+do mm = 0,member-1-1
   date = stringtochar(files(mm))
   times    = wrf_user_getvar(a[mm],"times",-1)
   ntimes   = dimsizes(times) ; number of times in the files
@@ -36,14 +40,14 @@ do vv = 0,nv-1
 end do
 nrh = 0
 do t = 0,ntimes-1
-  var2(0,t,:,:) = fbindirread(fName2, nrh, (/nlat,nlon/), "float") ;thick
-  var2(1,t,:,:) = fbindirread(fName2, nrh+1, (/nlat,nlon/), "float") ;top
-  var2(2,t,:,:) = fbindirread(fName2, nrh+2, (/nlat,nlon/), "float") ;base
+  var2(0,t,:,:) = fbindirread(fName2, nrh, (/nlat,nlon/), "float")   ;Cloud thick
+  var2(1,t,:,:) = fbindirread(fName2, nrh+1, (/nlat,nlon/), "float") ;Cloud top
+  var2(2,t,:,:) = fbindirread(fName2, nrh+2, (/nlat,nlon/), "float") ;Cloud base
   nrh = nrh + 3
 end do
 var1(4-1,:,:,:) = 10.0^var1(4-1,:,:,:) 
-lat_c = (/136,132,80,74,60/)  ; y
-lon_c = (/ 93, 88,71,71,68/)  ; x
+lat_c = (/136,132,80,74,141/)  ; y60
+lon_c = (/ 93, 88,71,71,107/)  ; x68
 ndam = dimsizes(lat_c)
  var1_avg = new((/ndam,nv,ntimes/),float,UNDEF)
  var2_avg = new((/ndam,3,ntimes/),float,UNDEF)

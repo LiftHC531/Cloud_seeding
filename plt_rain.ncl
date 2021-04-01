@@ -4,6 +4,10 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/wrf/WRFUserARW.ncl"
 ;load "/home/mlhchen/big_WRFUserARW.ncl"
 
 begin
+err = NhlGetErrorObjectId()
+  setvalues err
+    "errLevel" : "Fatal"          ; only report Fatal errors
+  end setvalues
 ;-------------------------------------------------------------------------
  files = systemfunc("ls -d ./wrfout_d03_*") + ".nc"
   member = dimsizes(files)
@@ -45,10 +49,40 @@ if (mm .eq. 0) then
  rh = new ( (/member-1,ntimes,nlev,nlat,nlon/), float, UNDEF)
 end if
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+month_int = stringtointeger(date(18:19)) 
+day_int = stringtointeger(date(21:22)) 
 if (date(24:25).eq."12") then
     ti = 12
     tf = 0
-    day = sprinti("%2.2i", stringtointeger(date(21:22)) + 1)
+    if (month_int .eq. 1 .or. month_int .eq. 3 .or. \
+        month_int .eq. 5 .or. month_int .eq. 7 .or. \ 
+        month_int .eq. 8 .or. month_int .eq. 10 .or. \ 
+        month_int .eq. 12) then 
+        if (day_int+1 .gt. 31) then
+           day = "01"
+           month = sprinti("%2.2i", month_int + 1)
+        else
+           day = sprinti("%2.2i", day_int+1) 
+           month = sprinti("%2.2i", month_int)
+        end if
+    else if (month_int .eq. 2) then
+        if (day_int+1 .gt. 28) then
+           day = "01"
+           month = sprinti("%2.2i", month_int + 1)
+        else
+           day = sprinti("%2.2i", day_int+1) 
+           month = sprinti("%2.2i", month_int)
+        end if
+    else
+        if (day_int+1 .gt. 30) then
+           day = "01"
+           month = sprinti("%2.2i", month_int + 1)
+        else
+           day = sprinti("%2.2i", day_int+1) 
+           month = sprinti("%2.2i", month_int)
+        end if
+    end if
+    end if
     rain_exp(0,0,:,:) = wrf_user_getvar(a[mm],"RAINNC",ti)
     rain_exp(0,1,:,:) = wrf_user_getvar(a[mm+1],"RAINNC",tf)
     rain_con(0,0,:,:) = wrf_user_getvar(a[mm],"RAINC",ti)
@@ -62,7 +96,8 @@ if (date(24:25).eq."12") then
 else
     ti = 0
     tf = 12
-    day = sprinti("%2.2i", stringtointeger(date(21:22)) )
+    day = sprinti("%2.2i", day_int)
+    month = sprinti("%2.2i", month_int)
     rain_exp(0,0,:,:) = wrf_user_getvar(a[mm],"RAINNC",ti)
     rain_exp(0,1,:,:) = wrf_user_getvar(a[mm],"RAINNC",tf)
     rain_con(0,0,:,:) = wrf_user_getvar(a[mm],"RAINC",ti)
@@ -86,7 +121,9 @@ wks_type = "png"
 wks_type@wkWidth = 3000 ;page resolution
 wks_type@wkHeight = 3000
  do tt = 0,1
-  imagename = date(13:20)+day+"_12hr_QPF"+tt
+year = stringtointeger(date(13:16)) 
+  imagename = year+"-"+month+"-"+day+"_12hr_QPF"+tt
+year = year - 1911
 ;=================
   wks = gsn_open_wks(wks_type,imagename)
 ;=================
@@ -134,7 +171,7 @@ mpres@tmYLMajorThicknessF = 25
 ;>>>>>>>>>>>>>>
 res_pn = True
 res_pn@gsnMaximze = True
-res_pn@txString ="~F26~             109"+date(17:20)+day
+res_pn@txString ="~F26~             "+year+"-"+month+"-"+day
 ;res_pn@gsnPanelYWhiteSpacePercent = 10 ;Add white space bar/wks plots
 res_pn@gsnPanelLabelBar = True        ;Turn on common labelbar
 res_pn@lbBoxSeparatorLinesOn= False
@@ -166,8 +203,8 @@ if (True) then
 
 ;ic = (/ 93,71,71/) 
 ;jc = (/136,80,74/)
-xd = (/121.1929121,121.0555066,120.5361886,120.5374418,120.4323562/)
-yd = (/ 24.8153923, 24.7278826, 23.2478001,  23.089879, 22.6925145/)
+xd = (/121.1929121,121.0555066,120.5361886,120.5374418,121.636376/)
+yd = (/ 24.8153923, 24.7278826, 23.2478001,  23.089879, 24.952989/)
 markcolor = (/"black","orange","red","blue","purple"/)
 nr = dimsizes(xd)
 dumii = new(nr,graphic)
@@ -222,20 +259,20 @@ end if
   delete(rain_tot)
   ;;delete(rain_12h)
 end do
-lat_c = (/136,132,80,74,60/)  ; y
-lon_c = (/ 93, 88,71,71,68/)  ; x
-ndam = dimsizes(lat_c)
+lat_c = (/136,132,80,74,141/)  ; y60
+lon_c = (/ 93, 88,71,71,107/)  ; x68
+ndam  = dimsizes(lat_c)
 rain_sheet = new ( (/ndam,member-1/), float, UNDEF)
-rh_sheet = new ( (/ndam,member-1/), float, UNDEF)
-do mm = 0,member-1-1
+rh_sheet   = new ( (/ndam,member-1/), float, UNDEF)
+do mm = 0, member-1-1
    do dam = 0,ndam-1
       rain_sheet(dam,mm) = max(rain_12h(0,mm,lat_c(dam)-1:lat_c(dam)+1,lon_c(dam)-1:lon_c(dam)+1))
-      rh_sheet(dam,mm) = avg(rh(mm,:,0,lat_c(dam)-1:lat_c(dam)+1,lon_c(dam)-1:lon_c(dam)+1))
+      rh_sheet(dam,mm)   = avg(    rh(mm,:,0,lat_c(dam)-1:lat_c(dam)+1,lon_c(dam)-1:lon_c(dam)+1))
    end do
 end do
 File_out = "12hr_rain.bin"
- system("rm -f "+File_out)
- setfileoption("bin","WriteByteOrder","LittleEndian")
+system("rm -f "+File_out)
+setfileoption("bin","WriteByteOrder","LittleEndian")
 do dam = 0,ndam-1
    fbindirwrite(File_out,rain_sheet(dam,:))
    fbindirwrite(File_out,rh_sheet(dam,:))
